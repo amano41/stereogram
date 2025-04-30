@@ -13,7 +13,6 @@ def generate_stereogram(depthmap_path, texture_path, output_path, offset_factor=
     # Convert images to numpy arrays
     depthmap_array = np.array(depthmap_image)
     texture_array = np.array(texture_image)
-    # Ensure the depth map is in grayscale
 
     # Normalize the depth map to the range [0, 1]
     def normalize(array):
@@ -23,28 +22,32 @@ def generate_stereogram(depthmap_path, texture_path, output_path, offset_factor=
 
     depthmap_array = normalize(depthmap_array)
 
+    # Convert to RGB if grayscale
     if texture_array.ndim == 2:
-        texture_array = np.stack((texture_array,) * 3, axis=-1)  # Convert to RGB if grayscale
+        texture_array = np.stack((texture_array,) * 3, axis=-1)
 
     # Create an empty array for the stereogram
+    width = depthmap_array.shape[1] + texture_array.shape[1]
+    height = depthmap_array.shape[0]
+    channels = texture_array.shape[2]
     stereogram_array = np.zeros_like(
         texture_array,
-        shape=(depthmap_array.shape[0], depthmap_array.shape[1] + texture_array.shape[1], texture_array.shape[2]),
+        shape=(height, width, channels),
         dtype=texture_array.dtype,
     )
 
     # Generate the stereogram
-    for y in range(stereogram_array.shape[0]):
-        for x in range(stereogram_array.shape[1]):
+    for y in range(height):
+        for x in range(width):
             if x < texture_array.shape[1]:
                 sy = y % texture_array.shape[0]
                 sx = x % texture_array.shape[1]
                 stereogram_array[y, x] = texture_array[sy, sx]
             else:
-                offset = int(depthmap_array[y, x - texture_array.shape[1]] * offset_factor)
-                sx = x - texture_array.shape[1] + offset
                 sy = y
-                stereogram_array[y, x] = stereogram_array[sy, sx]
+                sx = x - texture_array.shape[1]
+                offset = int(depthmap_array[y, sx] * offset_factor)
+                stereogram_array[y, x] = stereogram_array[sy, sx + offset]
 
     # Convert back to an image
     stereogram_image = Image.fromarray(stereogram_array)
