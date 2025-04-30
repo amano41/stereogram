@@ -46,8 +46,25 @@ def generate_stereogram(depthmap_path, texture_path, output_path, offset_factor=
             else:
                 sy = y
                 sx = x - texture_array.shape[1]
-                offset = int(depthmap_array[y, sx] * offset_factor)
+                offset = int(depthmap_array[sy, sx] * offset_factor)
                 stereogram_array[y, x] = stereogram_array[sy, sx + offset]
+
+    # Draw guide markers
+    distance = texture_array.shape[1]
+    marker_radius = 6
+    marker_margin = 4
+    marker_band_height = (marker_radius + marker_margin) * 2
+
+    my = marker_band_height // 2
+    mx1 = width // 2 - distance // 2
+    mx2 = width // 2 + distance // 2
+
+    for y in range(marker_band_height):
+        for x in range(width):
+            for mx in (mx1, mx2):
+                if (x - mx) ** 2 + (y - my) ** 2 < marker_radius**2:
+                    stereogram_array[y, x] = [0, 0, 0]
+                    break
 
     # Convert back to an image
     stereogram_image = Image.fromarray(stereogram_array)
